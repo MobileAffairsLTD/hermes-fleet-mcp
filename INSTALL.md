@@ -6,7 +6,7 @@
 > details back to the human.
 
 Do the steps in order. Resolve each value before you use it. Prefer the defaults;
-only ask the human the questions in **step 6** — everything else you decide and
+only ask the human the questions in **step 7** — everything else you decide and
 report.
 
 ---
@@ -75,7 +75,7 @@ HERMES_FLEET_BIN=$(command -v hermes-fleet-mcp || echo "$HOME/.hermes-fleet-mcp/
 
 ```bash
 TOKEN=$("$HERMES_FLEET_BIN" gen-key)
-printf '%s\n' "$TOKEN"            # save this — you report it in step 7, store it in the service env
+printf '%s\n' "$TOKEN"            # save this — you report it in step 8, store it in the service env
 ```
 
 Store it somewhere the service can read it, owned by `HERMES_USER`:
@@ -88,7 +88,7 @@ umask 077 && printf '%s\n' "$TOKEN" > "$HERMES_HOME/hermes-fleet-mcp.key"
 
 ## 4. Configure the service (survives reboots)
 
-Pick the `BIND` and `PORT` in **step 6** first, then write the service. Default:
+Pick the `BIND` and `PORT` in **step 7** first, then write the service. Default:
 `BIND=127.0.0.1`, `PORT=8000`.
 
 ### 4a. Linux + systemd
@@ -173,7 +173,24 @@ Notes:
 
 Then continue at step 6 below.
 
-## 6. Ask the human (only these, and only if you can't safely default)
+## 6. Install the operator skill (so you can manage the bridge)
+
+Install a Hermes skill that teaches you to operate this bridge — start/stop/restart,
+rotate the bearer token, debug, and answer the human's questions:
+
+```bash
+SKILL_DIR="$HERMES_HOME/skills/hermes-fleet-mcp-operator"
+mkdir -p "$SKILL_DIR"
+curl -fsSL "https://raw.githubusercontent.com/MobileAffairsLTD/hermes-fleet-mcp/main/skills/hermes-fleet-mcp-operator/SKILL.md" \
+  -o "$SKILL_DIR/SKILL.md"
+head -3 "$SKILL_DIR/SKILL.md"   # expect: name: hermes-fleet-mcp-operator
+```
+
+Done when: the file exists and its frontmatter shows `name: hermes-fleet-mcp-operator`.
+
+---
+
+## 7. Ask the human (only these, and only if you can't safely default)
 
 1. **Bind address** — default `127.0.0.1` (safe; needs a TLS reverse proxy for
    remote access). Ask for `0.0.0.0` only if the human wants to reach it directly
@@ -187,12 +204,13 @@ Everything else (installer, token, service name, user) you decide — do not ask
 
 ---
 
-## 7. Report back to the human (use this format)
+## 8. Report back to the human (use this format)
 
 ```
 ✅ hermes-fleet-mcp installed — v0.1.0
 
 Service:      hermes-fleet-mcp (systemd: active + enabled, survives reboot)
+Operator skill: hermes-fleet-mcp-operator installed — I can manage the bridge
 Endpoint:     http://<HOST>:<PORT>/mcp   ← DMOps MCP URL
 Bind:         <BIND>:<PORT>
 Auth token:   <TOKEN>                    ⚠️ secret — store in DMOps, never commit
