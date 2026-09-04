@@ -91,15 +91,15 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/mcp
 ## Rotate the bearer token
 
 ```bash
-TOKEN=$(hermes-fleet-mcp gen-key)
-umask 077 && printf '%s\n' "$TOKEN" > "$HERMES_HOME/hermes-fleet-mcp.key"
+umask 077 && hermes-fleet-mcp gen-key --output "$HERMES_HOME/hermes-fleet-mcp.key"
 systemctl restart hermes-fleet-mcp        # (or the OS equivalent)
 ```
 
 ⚠️ **Coordinate with the human.** The control plane (DMOps) holds the OLD token in its
 Node connection. After you rotate, the human must update the node's token in DMOps or
-the box will show `offline`. Report the new token to the human (never commit it — it's
-a secret).
+the box will show `offline`. Tell the human to read the new token with
+`cat "$HERMES_HOME/hermes-fleet-mcp.key"` — never print the value yourself (it would
+land in your reply, logs, and session history).
 
 ## Debugging "DMOps can't connect"
 
@@ -122,9 +122,10 @@ Work top-down:
 - **"What agents are on this box?"** → read `$HERMES_HOME/config.yaml` and
   `$HERMES_HOME/profiles/*/config.yaml` (each is an agent), or call the bridge's
   `list_agents` tool.
-- **"How do I connect a new control plane?"** → hand over the URL + the token from
-  `$HERMES_HOME/hermes-fleet-mcp.key`; remind them to front it with TLS.
-- **"Rotate the token."** → run the rotate steps above, then report the new token.
+- **"How do I connect a new control plane?"** → hand over the URL and tell them to read
+  the token with `cat "$HERMES_HOME/hermes-fleet-mcp.key"`; remind them to front it with TLS.
+- **"Rotate the token."** → run the rotate steps above, then give the human the `cat`
+  command to read it (not the value).
 
 ## Common Pitfalls
 
@@ -136,8 +137,9 @@ Work top-down:
    the bridge under its own domain, the SDK rejects the Host header with `421`. Fix it
    by adding `--allowed-host <domain>` to the service command (repeatable; a bare host
    also allows any port) — not by disabling auth.
-4. **Treating the token as disposable.** It's a secret: never print it into logs, commit
-   it, or paste it anywhere except the control plane's credential field.
+4. **Echoing the token.** Never print the value — it lands in your reply, logs, and
+   session history. Give the human the key-file path + the `cat` command instead; the
+   token stays in the file for the service (don't delete it).
 
 ## Verification Checklist
 

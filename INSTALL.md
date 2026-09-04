@@ -73,16 +73,15 @@ HERMES_FLEET_BIN=$(command -v hermes-fleet-mcp || echo "$HOME/.hermes-fleet-mcp/
 
 ## 3. Generate the bearer token
 
-```bash
-TOKEN=$("$HERMES_FLEET_BIN" gen-key)
-printf '%s\n' "$TOKEN"            # save this — you report it in step 8, store it in the service env
-```
-
-Store it somewhere the service can read it, owned by `HERMES_USER`:
+Generate the token **straight into the key file**. Never print the token value — not in
+a reply, a log, or a transcript. The human reads it from the file themselves.
 
 ```bash
-umask 077 && printf '%s\n' "$TOKEN" > "$HERMES_HOME/hermes-fleet-mcp.key"
+umask 077 && "$HERMES_FLEET_BIN" gen-key --output "$HERMES_HOME/hermes-fleet-mcp.key"
 ```
+
+Done when: `ls -l "$HERMES_HOME/hermes-fleet-mcp.key"` shows the file exists with
+`-rw-------` (600). Do **not** `cat` it — that would print the token.
 
 ---
 
@@ -157,6 +156,7 @@ If this box prefers containers over a native install, replace steps 2–5 with:
 ```bash
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 HERMES_FLEET_MCP_TOKEN="$(python3 -c 'import secrets;print(secrets.token_urlsafe(32))')"
+umask 077 && printf '%s\n' "$HERMES_FLEET_MCP_TOKEN" > "$HERMES_HOME/hermes-fleet-mcp.key"   # never echo the value
 git clone https://github.com/MobileAffairsLTD/hermes-fleet-mcp.git /tmp/hermes-fleet-mcp
 cd /tmp/hermes-fleet-mcp
 HERMES_HOME="$HERMES_HOME" HERMES_FLEET_MCP_TOKEN="$HERMES_FLEET_MCP_TOKEN" docker compose up -d --build
@@ -206,6 +206,10 @@ Everything else (installer, token, service name, user) you decide — do not ask
 
 ## 8. Report back to the human (use this format)
 
+**Never print the token value in your reply** — give the human the file path and the
+command to read it instead. The token stays in the key file for the service (do not
+delete it).
+
 ```
 ✅ hermes-fleet-mcp installed — v0.1.0
 
@@ -213,16 +217,17 @@ Service:      hermes-fleet-mcp (systemd: active + enabled, survives reboot)
 Operator skill: hermes-fleet-mcp-operator installed — I can manage the bridge
 Endpoint:     http://<HOST>:<PORT>/mcp   ← DMOps MCP URL
 Bind:         <BIND>:<PORT>
-Auth token:   <TOKEN>                    ⚠️ secret — store in DMOps, never commit
+Auth token:   <HERMES_HOME>/hermes-fleet-mcp.key   ← do NOT print the value
+              copy it:  cat <HERMES_HOME>/hermes-fleet-mcp.key
 
 To connect DMOps to this box, give it exactly two facts:
   1. URL:  https://<reachable-host>/mcp   (put a TLS reverse proxy in front)
-  2. Token: <TOKEN>
+  2. Token: from <HERMES_HOME>/hermes-fleet-mcp.key — run  cat <HERMES_HOME>/hermes-fleet-mcp.key
 
 Manage it:
   logs:        journalctl -u hermes-fleet-mcp -f        (or the OS equivalent)
   restart:     systemctl restart hermes-fleet-mcp
-  change token: hermes-fleet-mcp gen-key | sudo tee <HERMES_HOME>/hermes-fleet-mcp.key, then restart
+  change token: umask 077 && hermes-fleet-mcp gen-key --output <HERMES_HOME>/hermes-fleet-mcp.key, then restart
   uninstall:   <the installer's remove cmd> && sudo systemctl disable --now hermes-fleet-mcp
 
 ⚠️ TLS: the token travels in the clear over plain HTTP. For production, expose
