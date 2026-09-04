@@ -1,0 +1,26 @@
+# hermes-fleet-mcp — Node Bridge
+#
+# Read tools work with HERMES_HOME mounted read-only. The `chat` tool + the
+# version field in node_status need the `hermes` CLI reachable inside the
+# container (see the note below the volume mount).
+
+services:
+  hermes-fleet-mcp:
+    build: .
+    image: hermes-fleet-mcp:latest
+    restart: unless-stopped
+    ports:
+      # localhost only — put a TLS reverse proxy in front for remote access
+      - "127.0.0.1:8000:8000"
+    environment:
+      HERMES_FLEET_MCP_TOKEN: "${HERMES_FLEET_MCP_TOKEN:?run: python3 -c 'import secrets;print(secrets.token_urlsafe(32))' and set this}"
+      HERMES_HOME: /hermes
+    volumes:
+      # read-only mount of the Hermes home (state.db, cron, skills, profiles)
+      - "${HERMES_HOME:?set your Hermes home, e.g. /home/hermes/.hermes}:/hermes:ro"
+      # To enable the `chat` tool, make `hermes` reachable in the container — one of:
+      #   (a) build FROM a Hermes image that already ships `hermes`, or
+      #   (b) mount the host Hermes install and add --hermes-bin, e.g.:
+      #       - /opt/hermes:/opt/hermes:ro
+      #       command: ["serve", "--host", "0.0.0.0", "--port", "8000",
+      #                 "--hermes-home", "/hermes", "--hermes-bin", "/opt/hermes/venv/bin/hermes"]

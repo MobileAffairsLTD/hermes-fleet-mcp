@@ -7,6 +7,17 @@ Hermes box. This is the **Node Bridge** — one install per box, one bearer toke
 Read-only observability (agents, sessions, crons, skills, tools) + a `chat` tool that runs a
 remote agent and returns a session handle to poll. No admin mutations.
 
+## License & Disclaimer
+
+**MIT licensed** — free to use, modify, and redistribute, including for commercial use.
+See [LICENSE](LICENSE).
+
+Developed by **Dynamics Mobile OOD** ([dynamicsmobile.com](https://dynamicsmobile.com)).
+The software is provided **"AS IS"** for **use at your own risk**: Dynamics Mobile OOD
+makes **no warranties** and accepts **no responsibility or liability** for any consequences,
+damage, or loss arising from its installation or use — including anything an agent does
+while driven through this bridge.
+
 ## Install (on the box)
 
 Requires Python 3.10+ and a working `hermes` CLI on `PATH`.
@@ -33,6 +44,19 @@ The MCP endpoint is `http://<host>:<port>/mcp`. Every request must carry
 MCP-over-TLS transport. The token is a shared secret; plain HTTP leaks it.
 
 `HERMES_HOME` is honoured (default `~/.hermes`); override with `--hermes-home`.
+
+## Docker
+
+Run as a container — read-only observability works out of the box with `HERMES_HOME` mounted:
+
+```bash
+export HERMES_HOME=/home/hermes/.hermes
+export HERMES_FLEET_MCP_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+docker compose up -d --build
+```
+
+The `chat` tool and the version field need the `hermes` CLI — see `docker-compose.yml`
+for how to make it reachable (build FROM a Hermes image, or mount the host install).
 
 ## Tool surface
 

@@ -150,6 +150,29 @@ before reporting.
 
 ---
 
+## Docker alternative (skip steps 2–5 if you use containers)
+
+If this box prefers containers over a native install, replace steps 2–5 with:
+
+```bash
+HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+HERMES_FLEET_MCP_TOKEN="$(python3 -c 'import secrets;print(secrets.token_urlsafe(32))')"
+git clone https://github.com/MobileAffairsLTD/hermes-fleet-mcp.git /tmp/hermes-fleet-mcp
+cd /tmp/hermes-fleet-mcp
+HERMES_HOME="$HERMES_HOME" HERMES_FLEET_MCP_TOKEN="$HERMES_FLEET_MCP_TOKEN" docker compose up -d --build
+docker compose ps
+```
+
+Notes:
+
+- Read tools work with `HERMES_HOME` mounted read-only.
+- The `chat` tool + version need the `hermes` CLI in the container — build FROM a
+  Hermes image, or mount the host install and pass `--hermes-bin` (see `docker-compose.yml`).
+- Verify: `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/mcp` must be `401`
+  without a token.
+
+Then continue at step 6 below.
+
 ## 6. Ask the human (only these, and only if you can't safely default)
 
 1. **Bind address** — default `127.0.0.1` (safe; needs a TLS reverse proxy for
