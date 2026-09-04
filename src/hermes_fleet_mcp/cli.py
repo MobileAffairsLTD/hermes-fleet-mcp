@@ -28,6 +28,15 @@ def main(argv: list[str] | None = None) -> int:
     serve_p.add_argument("--token-file", help="Read the bearer token from a file")
     serve_p.add_argument("--hermes-home", help="Override HERMES_HOME (default: $HERMES_HOME or ~/.hermes)")
     serve_p.add_argument("--hermes-bin", default="hermes", help="Path to the hermes CLI (default: hermes on PATH)")
+    serve_p.add_argument(
+        "--allowed-host",
+        action="append",
+        dest="allowed_hosts",
+        metavar="HOST",
+        help="Re-enable DNS-rebinding protection and whitelist this Host header value "
+        "(repeatable). Pass your public domain/hostname (e.g. dmsdevteam1.ngrok.app) "
+        "or host:* to allow any port. Localhost is always allowed.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -49,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
             token_file=args.token_file,
             hermes_home=args.hermes_home,
             hermes_bin=args.hermes_bin,
+            allowed_hosts=args.allowed_hosts,
         )
         return 0
 

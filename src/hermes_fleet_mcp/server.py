@@ -43,7 +43,41 @@ class _BearerAuthMiddleware:
         await self.app(scope, receive, send)
 
 
-def build_mcp(state: HermesState, runner: ChatRunner) -> FastMCP:
+LOCALHOST_HOSTS = ("127.0.0.1:*", "localhost:*", "[::1]:*")
+
+
+def _expand_hosts(hosts: list[str]) -> list[str]:
+    """Accept a bare host for any port: 'host' also covers 'host:PORT'.
+
+    The MCP SDK exact-matches the Host header, but that header carries the port
+    (e.g. 'host.docker.internal:8000'), so a bare 'host' alone wouldn't match.
+    Append 'host:*' for each bare host so both forms are allowed.
+    """
+    out: list[str] = []
+    for h in hosts:
+        out.append(h)
+        if not h.endswith(":*"):
+            out.append(h + ":*")
+    return out
+
+
+def _transport_security(allowed_hosts: list[str] | None) -> TransportSecuritySettings:
+    """Choose DNS-rebinding protection settings.
+
+    The Bridge is a server-to-server MCP endpoint (reached by the dmops runtime), not
+    a browser client, so Host-header allowlisting is off by default (it would reject
+    non-localhost callers with 421). Passing --allowed-host re-enables it with the
+    operator's real hosts whitelisted (plus localhost so local dev still works).
+    """
+    if allowed_hosts:
+        return TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=list(LOCALHOST_HOSTS) + _expand_hosts(allowed_hosts),
+        )
+    return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+
+def build_mcp(state: HermesState, runner: ChatRunner, allowed_hosts: list[str] | None = None) -> FastMCP:
     mcp = FastMCP(
         "hermes-fleet",
         instructions=(
@@ -51,11 +85,7 @@ def build_mcp(state: HermesState, runner: ChatRunner) -> FastMCP:
             "(agents, sessions, crons, skills, tools) plus a chat tool that runs a "
             "remote agent and returns a session handle to poll."
         ),
-        # The Bridge is a server-to-server MCP endpoint (reached by the dmops runtime
-        # over host.docker.internal / a real hostname), not a browser client — so DNS
-        # rebinding Host-header allowlisting would reject non-localhost callers with 421.
-        # Security is the per-node bearer token (+ TLS in front), not Host pinning.
-        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+        transport_security=_transport_security(allowed_hosts),
     )
 
     @mcp.tool()
@@ -125,6 +155,7 @@ def serve(
     token_file: str | None = None,
     hermes_home: str | None = None,
     hermes_bin: str = "hermes",
+    allowed_hosts: list[str] | None = None,
 ) -> None:
     import uvicorn
 
@@ -137,7 +168,7 @@ def serve(
 
     state = HermesState(hermes_home=hermes_home, hermes_bin=hermes_bin)
     runner = ChatRunner(hermes_bin=hermes_bin)
-    mcp = build_mcp(state, runner)
+    mcp = build_mcp(state, runner, allowed_hosts=allowed_hosts)
     app = _BearerAuthMiddleware(mcp.streamable_http_app(), tok)
 
     print(f"hermes-fleet-mcp serving MCP at http://{host}:{port}/mcp", flush=True)

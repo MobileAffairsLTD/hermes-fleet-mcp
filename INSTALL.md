@@ -177,7 +177,10 @@ Then continue at step 6 below.
 
 1. **Bind address** — default `127.0.0.1` (safe; needs a TLS reverse proxy for
    remote access). Ask for `0.0.0.0` only if the human wants to reach it directly
-   from another host and confirms the network path is private.
+   from another host and confirms the network path is private. If a reverse proxy
+   exposes the bridge under its own domain, pass `--allowed-host <domain>`
+   (repeatable) to re-enable DNS-rebinding protection and whitelist that domain —
+   optional, but recommended when the domain is public.
 2. **Port** — default `8000`. Ask only if `8000` is already in use.
 
 Everything else (installer, token, service name, user) you decide — do not ask.
@@ -207,6 +210,11 @@ Manage it:
 ⚠️ TLS: the token travels in the clear over plain HTTP. For production, expose
    the service only through a TLS reverse proxy (or a private network), never
    directly on the public internet.
+
+   Optional hardening: `--allowed-host <domain>` (repeatable) re-enables
+   DNS-rebinding protection with your domain whitelisted. Without it the bridge
+   accepts any Host header — fine for server-to-server, since the bearer token is
+   the real gate.
 ```
 
 Fill `<HOST>` with the machine's hostname/IP that DMOps can reach
