@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-fleet-mcp"
+version = "0.1.0"
+description = "MCP server that exposes a Hermes deployment's agents, sessions, crons, skills, tools, and a chat surface."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Dynamics Mobile" }]
+keywords = ["hermes", "mcp", "agent", "fleet", "observability"]
+dependencies = [
+    "mcp>=1.2.0,<2",
+    "PyYAML>=6.0",
+    "uvicorn>=0.30",
+]
+
+[project.scripts]
+hermes-fleet-mcp = "hermes_fleet_mcp.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
