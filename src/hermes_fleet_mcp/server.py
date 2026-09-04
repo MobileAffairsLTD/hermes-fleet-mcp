@@ -6,6 +6,7 @@ import os
 import secrets
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.responses import JSONResponse
 
 from .chat import ChatRunner
@@ -50,6 +51,11 @@ def build_mcp(state: HermesState, runner: ChatRunner) -> FastMCP:
             "(agents, sessions, crons, skills, tools) plus a chat tool that runs a "
             "remote agent and returns a session handle to poll."
         ),
+        # The Bridge is a server-to-server MCP endpoint (reached by the dmops runtime
+        # over host.docker.internal / a real hostname), not a browser client — so DNS
+        # rebinding Host-header allowlisting would reject non-localhost callers with 421.
+        # Security is the per-node bearer token (+ TLS in front), not Host pinning.
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     )
 
     @mcp.tool()
